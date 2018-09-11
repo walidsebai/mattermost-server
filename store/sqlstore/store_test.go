@@ -16,18 +16,17 @@ import (
 )
 
 var storeTypes = []*struct {
-	Name      string
-	Func      func() (*storetest.RunningContainer, *model.SqlSettings, error)
-	Container *storetest.RunningContainer
-	Store     store.Store
+	Name        string
+	SqlSettings *model.SqlSettings
+	Store       store.Store
 }{
 	{
-		Name: "MySQL",
-		Func: storetest.NewMySQLContainer,
+		Name:        "MySQL",
+		SqlSettings: storetest.MySQLSettings(),
 	},
 	{
-		Name: "PostgreSQL",
-		Func: storetest.NewPostgreSQLContainer,
+		Name:        "PostgreSQL",
+		SqlSettings: storetest.PostgreSQLSettings(),
 	},
 }
 
@@ -52,28 +51,17 @@ func initStores() {
 		}
 	}()
 	var wg sync.WaitGroup
-	errCh := make(chan error, len(storeTypes))
-	wg.Add(len(storeTypes))
 	for _, st := range storeTypes {
 		st := st
+		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			container, settings, err := st.Func()
-			if err != nil {
-				errCh <- err
-				return
-			}
-			st.Container = container
-			st.Store = store.NewLayeredStore(NewSqlSupplier(*settings, nil), nil, nil)
+			st.Store = store.NewLayeredStore(NewSqlSupplier(*st.SqlSettings, nil), nil, nil)
+			st.Store.DropAllTables()
 			st.Store.MarkSystemRanUnitTests()
 		}()
 	}
 	wg.Wait()
-	select {
-	case err := <-errCh:
-		panic(err)
-	default:
-	}
 }
 
 var tearDownStoresOnce sync.Once
@@ -87,9 +75,6 @@ func tearDownStores() {
 			go func() {
 				if st.Store != nil {
 					st.Store.Close()
-				}
-				if st.Container != nil {
-					st.Container.Stop()
 				}
 				wg.Done()
 			}()
