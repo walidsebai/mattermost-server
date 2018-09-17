@@ -6,10 +6,14 @@ package testutils
 import (
 	"net/http"
 	"net/http/httptest"
+	"time"
 )
 
 type MockedHTTPService struct {
 	Server *httptest.Server
+
+	OverrideTimeout bool
+	Timeout         time.Duration
 }
 
 func MakeMockedHTTPService(handler http.Handler) *MockedHTTPService {
@@ -19,7 +23,13 @@ func MakeMockedHTTPService(handler http.Handler) *MockedHTTPService {
 }
 
 func (h *MockedHTTPService) MakeClient(trustURLs bool) *http.Client {
-	return h.Server.Client()
+	client := h.Server.Client()
+
+	if h.OverrideTimeout {
+		client.Timeout = h.Timeout
+	}
+
+	return client
 }
 
 func (h *MockedHTTPService) Close() {
