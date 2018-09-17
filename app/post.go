@@ -983,12 +983,12 @@ func (a *App) PostPatchWithProxyRemovedFromImageURLs(patch *model.PostPatch) *mo
 func (a *App) imageProxyConfig() (proxyType, proxyURL, options, siteURL string) {
 	cfg := a.Config()
 
-	if cfg.ServiceSettings.ImageProxyURL == nil || cfg.ServiceSettings.ImageProxyType == nil || cfg.ServiceSettings.SiteURL == nil {
+	if !*cfg.ImageProxySettings.Enable {
 		return
 	}
 
-	proxyURL = *cfg.ServiceSettings.ImageProxyURL
-	proxyType = *cfg.ServiceSettings.ImageProxyType
+	proxyURL = *cfg.ImageProxySettings.RemoteImageProxyURL
+	proxyType = *cfg.ImageProxySettings.ImageProxyType
 	siteURL = *cfg.ServiceSettings.SiteURL
 
 	if proxyURL == "" || proxyType == "" {
@@ -1003,8 +1003,8 @@ func (a *App) imageProxyConfig() (proxyType, proxyURL, options, siteURL string) 
 		siteURL += "/"
 	}
 
-	if cfg.ServiceSettings.ImageProxyOptions != nil {
-		options = *cfg.ServiceSettings.ImageProxyOptions
+	if cfg.ImageProxySettings.RemoteImageProxyOptions != nil {
+		options = *cfg.ImageProxySettings.RemoteImageProxyOptions
 	}
 
 	return
@@ -1022,7 +1022,7 @@ func (a *App) ImageProxyAdder() func(string) string {
 		}
 
 		switch proxyType {
-		case "atmos/camo":
+		case model.IMAGE_PROXY_TYPE_ATMOS_CAMO:
 			mac := hmac.New(sha1.New, []byte(options))
 			mac.Write([]byte(url))
 			digest := hex.EncodeToString(mac.Sum(nil))
@@ -1041,7 +1041,7 @@ func (a *App) ImageProxyRemover() (f func(string) string) {
 
 	return func(url string) string {
 		switch proxyType {
-		case "atmos/camo":
+		case model.IMAGE_PROXY_TYPE_ATMOS_CAMO:
 			if strings.HasPrefix(url, proxyURL) {
 				if slash := strings.IndexByte(url[len(proxyURL):], '/'); slash >= 0 {
 					if decoded, err := hex.DecodeString(url[len(proxyURL)+slash+1:]); err == nil {

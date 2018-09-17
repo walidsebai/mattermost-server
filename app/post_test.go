@@ -422,28 +422,28 @@ func TestImageProxy(t *testing.T) {
 		ProxiedImageURL string
 	}{
 		"atmos/camo": {
-			ProxyType:       "atmos/camo",
+			ProxyType:       model.IMAGE_PROXY_TYPE_ATMOS_CAMO,
 			ProxyURL:        "https://127.0.0.1",
 			ProxyOptions:    "foo",
 			ImageURL:        "http://mydomain.com/myimage",
 			ProxiedImageURL: "https://127.0.0.1/f8dace906d23689e8d5b12c3cefbedbf7b9b72f5/687474703a2f2f6d79646f6d61696e2e636f6d2f6d79696d616765",
 		},
 		"atmos/camo_SameSite": {
-			ProxyType:       "atmos/camo",
+			ProxyType:       model.IMAGE_PROXY_TYPE_ATMOS_CAMO,
 			ProxyURL:        "https://127.0.0.1",
 			ProxyOptions:    "foo",
 			ImageURL:        "http://mymattermost.com/myimage",
 			ProxiedImageURL: "http://mymattermost.com/myimage",
 		},
 		"atmos/camo_PathOnly": {
-			ProxyType:       "atmos/camo",
+			ProxyType:       model.IMAGE_PROXY_TYPE_ATMOS_CAMO,
 			ProxyURL:        "https://127.0.0.1",
 			ProxyOptions:    "foo",
 			ImageURL:        "/myimage",
 			ProxiedImageURL: "/myimage",
 		},
 		"atmos/camo_EmptyImageURL": {
-			ProxyType:       "atmos/camo",
+			ProxyType:       model.IMAGE_PROXY_TYPE_ATMOS_CAMO,
 			ProxyURL:        "https://127.0.0.1",
 			ProxyOptions:    "foo",
 			ImageURL:        "",
@@ -452,9 +452,10 @@ func TestImageProxy(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			th.App.UpdateConfig(func(cfg *model.Config) {
-				cfg.ServiceSettings.ImageProxyType = model.NewString(tc.ProxyType)
-				cfg.ServiceSettings.ImageProxyOptions = model.NewString(tc.ProxyOptions)
-				cfg.ServiceSettings.ImageProxyURL = model.NewString(tc.ProxyURL)
+				cfg.ImageProxySettings.Enable = model.NewBool(true)
+				cfg.ImageProxySettings.ImageProxyType = model.NewString(tc.ProxyType)
+				cfg.ImageProxySettings.RemoteImageProxyOptions = model.NewString(tc.ProxyOptions)
+				cfg.ImageProxySettings.RemoteImageProxyURL = model.NewString(tc.ProxyURL)
 			})
 
 			post := &model.Post{

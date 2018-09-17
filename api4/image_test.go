@@ -28,17 +28,21 @@ func TestGetImage(t *testing.T) {
 	require.NoError(t, err)
 	r.Header.Set(model.HEADER_AUTH, th.Client.AuthType+" "+th.Client.AuthToken)
 
-	imageProxyType := th.App.Config().ServiceSettings.ImageProxyType
-	imageProxyOptions := th.App.Config().ServiceSettings.ImageProxyOptions
-	imageProxyURL := th.App.Config().ServiceSettings.ImageProxyURL
+	imageProxyEnable := th.App.Config().ImageProxySettings.Enable
+	imageProxyType := th.App.Config().ImageProxySettings.ImageProxyType
+	imageProxyOptions := th.App.Config().ImageProxySettings.RemoteImageProxyOptions
+	imageProxyURL := th.App.Config().ImageProxySettings.RemoteImageProxyURL
 	defer func() {
-		th.App.UpdateConfig(func(cfg *model.Config) { cfg.ServiceSettings.ImageProxyType = imageProxyType })
-		th.App.UpdateConfig(func(cfg *model.Config) { cfg.ServiceSettings.ImageProxyOptions = imageProxyOptions })
-		th.App.UpdateConfig(func(cfg *model.Config) { cfg.ServiceSettings.ImageProxyOptions = imageProxyURL })
+		th.App.UpdateConfig(func(cfg *model.Config) {
+			cfg.ImageProxySettings.imageProxyEnable = imageProxyEnable
+			cfg.ImageProxySettings.ImageProxyType = imageProxyType
+			cfg.ImageProxySettings.RemoteImageProxyOptions = imageProxyOptions
+			cfg.ImageProxySettings.RemoteImageProxyURL = imageProxyURL
+		})
 	}()
 
 	th.App.UpdateConfig(func(cfg *model.Config) {
-		cfg.ServiceSettings.ImageProxyType = nil
+		cfg.ImageProxySettings.ImageProxyType = nil
 	})
 
 	resp, err := th.Client.HttpClient.Do(r)
@@ -46,9 +50,9 @@ func TestGetImage(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 
 	th.App.UpdateConfig(func(cfg *model.Config) {
-		cfg.ServiceSettings.ImageProxyType = model.NewString("atmos/camo")
-		cfg.ServiceSettings.ImageProxyOptions = model.NewString("foo")
-		cfg.ServiceSettings.ImageProxyURL = model.NewString("https://proxy.foo.bar")
+		cfg.ImageProxySettings.ImageProxyType = model.NewString("atmos/camo")
+		cfg.ImageProxySettings.RemoteImageProxyOptions = model.NewString("foo")
+		cfg.ImageProxySettings.RemoteImageProxyURL = model.NewString("https://proxy.foo.bar")
 	})
 
 	r, err = http.NewRequest("GET", th.Client.ApiUrl+"/image?url="+originURL, nil)

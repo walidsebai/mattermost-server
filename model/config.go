@@ -172,6 +172,9 @@ const (
 
 	CLIENT_SIDE_CERT_CHECK_PRIMARY_AUTH   = "primary"
 	CLIENT_SIDE_CERT_CHECK_SECONDARY_AUTH = "secondary"
+
+	IMAGE_PROXY_TYPE_LOCAL      = "local"
+	IMAGE_PROXY_TYPE_ATMOS_CAMO = "atmos/camo"
 )
 
 type ServiceSettings struct {
@@ -241,9 +244,9 @@ type ServiceSettings struct {
 	ExperimentalEnableDefaultChannelLeaveJoinMessages *bool
 	ExperimentalGroupUnreadChannels                   *string
 	ExperimentalChannelOrganization                   *bool
-	ImageProxyType                                    *string
-	ImageProxyURL                                     *string
-	ImageProxyOptions                                 *string
+	ImageProxyType                                    *string // Deprecated, use ImageProxySettings.ImageProxyType instead
+	ImageProxyURL                                     *string // Deprecated, use ImageProxySettings.RemoteImageProxyURL instead
+	ImageProxyOptions                                 *string // Deprecated, use ImageProxySettings.RemoteImageProxyOptions instead
 	EnableAPITeamDeletion                             *bool
 	ExperimentalEnableHardenedMode                    *bool
 	ExperimentalLimitClientConfig                     *bool
@@ -501,18 +504,6 @@ func (s *ServiceSettings) SetDefaults() {
 	if s.ExperimentalChannelOrganization == nil {
 		experimentalUnreadEnabled := *s.ExperimentalGroupUnreadChannels != GROUP_UNREAD_CHANNELS_DISABLED
 		s.ExperimentalChannelOrganization = NewBool(experimentalUnreadEnabled)
-	}
-
-	if s.ImageProxyType == nil {
-		s.ImageProxyType = NewString("")
-	}
-
-	if s.ImageProxyURL == nil {
-		s.ImageProxyURL = NewString("")
-	}
-
-	if s.ImageProxyOptions == nil {
-		s.ImageProxyOptions = NewString("")
 	}
 
 	if s.EnableAPITeamDeletion == nil {
@@ -1925,6 +1916,43 @@ func (s *TimezoneSettings) SetDefaults() {
 	}
 }
 
+type ImageProxySettings struct {
+	Enable                  *bool
+	ImageProxyType          *string
+	RemoteImageProxyURL     *string
+	RemoteImageProxyOptions *string
+}
+
+func (ips *ImageProxySettings) SetDefaults(ss ServiceSettings) {
+	if ips.Enable == nil {
+		ips.Enable = NewBool(true)
+	}
+
+	if ips.ImageProxyType == nil {
+		if ss.ImageProxyType == nil {
+			ips.ImageProxyType = NewString(IMAGE_PROXY_TYPE_LOCAL)
+		} else {
+			ips.ImageProxyType = ss.ImageProxyType
+		}
+	}
+
+	if ips.RemoteImageProxyURL == nil {
+		if ss.ImageProxyType == nil {
+			ips.RemoteImageProxyURL = NewString("")
+		} else {
+			ips.RemoteImageProxyURL = ss.ImageProxyURL
+		}
+	}
+
+	if ips.RemoteImageProxyOptions == nil {
+		if ss.ImageProxyOptions == nil {
+			ips.RemoteImageProxyOptions = NewString("")
+		} else {
+			ips.RemoteImageProxyOptions = ss.ImageProxyOptions
+		}
+	}
+}
+
 type ConfigFunc func() *Config
 
 type Config struct {
@@ -1962,6 +1990,7 @@ type Config struct {
 	PluginSettings        PluginSettings
 	DisplaySettings       DisplaySettings
 	TimezoneSettings      TimezoneSettings
+	ImageProxySettings    ImageProxySettings
 }
 
 func (o *Config) Clone() *Config {
@@ -2035,6 +2064,7 @@ func (o *Config) SetDefaults() {
 	o.TimezoneSettings.SetDefaults()
 	o.DisplaySettings.SetDefaults()
 	o.ExtensionSettings.SetDefaults()
+	o.ImageProxySettings.SetDefaults(o.ServiceSettings)
 }
 
 func (o *Config) IsValid() *AppError {
@@ -2107,6 +2137,10 @@ func (o *Config) IsValid() *AppError {
 	}
 
 	if err := o.DisplaySettings.isValid(); err != nil {
+		return err
+	}
+
+	if err := o.ImageProxySettings.isValid(); err != nil {
 		return err
 	}
 
@@ -2393,16 +2427,6 @@ func (ss *ServiceSettings) isValid() *AppError {
 		return NewAppError("Config.IsValid", "model.config.is_valid.group_unread_channels.app_error", nil, "", http.StatusBadRequest)
 	}
 
-	switch *ss.ImageProxyType {
-	case "":
-	case "atmos/camo":
-		if *ss.ImageProxyOptions == "" {
-			return NewAppError("Config.IsValid", "model.config.is_valid.atmos_camo_image_proxy_options.app_error", nil, "", http.StatusBadRequest)
-		}
-	default:
-		return NewAppError("Config.IsValid", "model.config.is_valid.image_proxy_type.app_error", nil, "", http.StatusBadRequest)
-	}
-
 	return nil
 }
 
@@ -2516,6 +2540,27 @@ func (ds *DisplaySettings) isValid() *AppError {
 					http.StatusBadRequest,
 				)
 			}
+		}
+	}
+
+	return nil
+}
+
+func (ips *ImageProxySettings) isValid() *AppError {
+	if *ips.Enable {
+		switch *ips.ImageProxyType {
+		case IMAGE_PROXY_TYPE_LOCAL:
+			// No other settings to validate
+		case IMAGE_PROXY_TYPE_ATMOS_CAMO:
+			if *ips.RemoteImageProxyURL == "" {
+				return NewAppError("Config.IsValid", "model.config.is_valid.atmos_camo_image_proxy_url.app_error", nil, "", http.StatusBadRequest)
+			}
+
+			if *ips.RemoteImageProxyOptions == "" {
+				return NewAppError("Config.IsValid", "model.config.is_valid.atmos_camo_image_proxy_options.app_error", nil, "", http.StatusBadRequest)
+			}
+		default:
+			return NewAppError("Config.IsValid", "model.config.is_valid.image_proxy_type.app_error", nil, "", http.StatusBadRequest)
 		}
 	}
 
