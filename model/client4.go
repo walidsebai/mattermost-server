@@ -417,6 +417,10 @@ func (c *Client4) DoApiPost(url string, data string) (*http.Response, *AppError)
 	return c.DoApiRequest(http.MethodPost, c.ApiUrl+url, data, "")
 }
 
+func (c *Client4) doApiPostBytes(url string, data []byte) (*http.Response, *AppError) {
+	return c.doApiRequestBytes(http.MethodPost, c.ApiUrl+url, data, "")
+}
+
 func (c *Client4) DoApiPut(url string, data string) (*http.Response, *AppError) {
 	return c.DoApiRequest(http.MethodPut, c.ApiUrl+url, data, "")
 }
@@ -426,7 +430,15 @@ func (c *Client4) DoApiDelete(url string) (*http.Response, *AppError) {
 }
 
 func (c *Client4) DoApiRequest(method, url, data, etag string) (*http.Response, *AppError) {
-	rq, _ := http.NewRequest(method, url, strings.NewReader(data))
+	return c.doApiRequestReader(method, url, strings.NewReader(data), etag)
+}
+
+func (c *Client4) doApiRequestBytes(method, url string, data []byte, etag string) (*http.Response, *AppError) {
+	return c.doApiRequestReader(method, url, bytes.NewReader(data), etag)
+}
+
+func (c *Client4) doApiRequestReader(method, url string, data io.Reader, etag string) (*http.Response, *AppError) {
+	rq, _ := http.NewRequest(method, url, data)
 
 	if len(etag) > 0 {
 		rq.Header.Set(HEADER_ETAG_CLIENT, etag)
@@ -859,7 +871,7 @@ func (c *Client4) GetUsersByUsernames(usernames []string) ([]*User, *Response) {
 
 // SearchUsers returns a list of users based on some search criteria.
 func (c *Client4) SearchUsers(search *UserSearch) ([]*User, *Response) {
-	if r, err := c.DoApiPost(c.GetUsersRoute()+"/search", search.ToJson()); err != nil {
+	if r, err := c.doApiPostBytes(c.GetUsersRoute()+"/search", search.ToJson()); err != nil {
 		return nil, BuildErrorResponse(r, err)
 	} else {
 		defer closeBody(r)
