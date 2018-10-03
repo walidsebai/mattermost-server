@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/mattermost/mattermost-server/app"
+	"github.com/mattermost/mattermost-server/errors"
 	"github.com/mattermost/mattermost-server/mlog"
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/mattermost/mattermost-server/utils"
@@ -160,7 +161,11 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if IsApiCall(c.App, r) || IsWebhookCall(c.App, r) || len(r.Header.Get("X-Mobile-App")) > 0 {
-			w.WriteHeader(c.Err.StatusCode)
+			if c.Err.StatusCode != 0 {
+				w.WriteHeader(c.Err.StatusCode)
+			} else {
+				w.WriteHeader(errors.StatusFromError(c.Err.Err))
+			}
 			w.Write([]byte(c.Err.ToJson()))
 		} else {
 			utils.RenderWebAppError(c.App.Config(), w, r, c.Err, c.App.AsymmetricSigningKey())

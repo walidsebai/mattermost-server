@@ -51,6 +51,7 @@ type AppError struct {
 	Where         string `json:"-"`                     // The function where it happened in the form of Struct.Func
 	IsOAuth       bool   `json:"is_oauth,omitempty"`    // Whether the error is OAuth specific
 	params        map[string]interface{}
+	Err           error `json:"-"`
 }
 
 func (er *AppError) Error() string {
@@ -103,14 +104,24 @@ func AppErrorFromJson(data io.Reader) *AppError {
 	}
 }
 
-func NewAppError(where string, id string, params map[string]interface{}, details string, status int) *AppError {
+func NewAppError(where string, id string, args ...interface{}) *AppError {
 	ap := &AppError{}
-	ap.Id = id
-	ap.params = params
-	ap.Message = id
+	ap.Id, ap.Message = id, id
 	ap.Where = where
-	ap.DetailedError = details
-	ap.StatusCode = status
+
+	for _, arg := range args {
+		switch arg := arg.(type) {
+		case int:
+			ap.StatusCode = arg
+		case error:
+			ap.Err = arg
+		case string:
+			ap.DetailedError = arg
+		case map[string]interface{}:
+			ap.params = arg
+		}
+	}
+
 	ap.IsOAuth = false
 	ap.Translate(translateFunc)
 	return ap

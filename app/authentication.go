@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/mattermost/mattermost-server/errors"
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/mattermost/mattermost-server/utils"
 )
@@ -74,7 +75,7 @@ func (a *App) checkUserPassword(user *model.User, password string) *model.AppErr
 			return result.Err
 		}
 
-		return model.NewAppError("checkUserPassword", "api.user.check_user_password.invalid.app_error", nil, "user_id="+user.Id, http.StatusUnauthorized)
+		return model.NewAppError("checkUserPassword", "api.user.check_user_password.invalid.app_error", nil, "user_id="+user.Id, errors.InvalidCredentials)
 	}
 
 	if result := <-a.Srv.Store.User().UpdateFailedPasswordAttempts(user.Id, 0); result.Err != nil {
@@ -210,7 +211,6 @@ func (a *App) authenticateUser(user *model.User, password, mfaToken string) (*mo
 	}
 
 	if err := a.CheckPasswordAndAllCriteria(user, password, mfaToken); err != nil {
-		err.StatusCode = http.StatusUnauthorized
 		return user, err
 	}
 
