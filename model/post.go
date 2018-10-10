@@ -83,18 +83,8 @@ type Post struct {
 	PendingPostId string          `json:"pending_post_id" db:"-"`
 	HasReactions  bool            `json:"has_reactions,omitempty"` // Deprecated, do not use this field any more
 
-	// Transient fields populated before sending posts to the client
-	ReactionCounts  ReactionCounts         `json:"reaction_counts" db:"-"`
-	FileInfos       []*FileInfo            `json:"file_infos" db:"-"`
-	ImageDimensions []*PostImageDimensions `json:"image_dimensions" db:"-"`
-	OpenGraphData   []*opengraph.OpenGraph `json:"opengraph_data" db:"-"`
-	Emojis          []*Emoji               `json:"emojis" db:"-"`
-}
-
-type PostImageDimensions struct {
-	URL    string `json:"url"`
-	Width  int    `json:"width"`
-	Height int    `json:"height"`
+	// Transient data populated before sending a post to the client
+	Metadata *PostMetadata `json:"metadata" db:"-"`
 }
 
 type PostEphemeral struct {
