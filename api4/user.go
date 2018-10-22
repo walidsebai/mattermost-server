@@ -52,6 +52,7 @@ func (api *API) InitUser() {
 	api.BaseRoutes.Users.Handle("/login", api.ApiHandler(login)).Methods("POST")
 	api.BaseRoutes.Users.Handle("/login/switch", api.ApiHandler(switchAccountType)).Methods("POST")
 	api.BaseRoutes.Users.Handle("/logout", api.ApiHandler(logout)).Methods("POST")
+	api.BaseRoutes.User.Handle("/sessions/revokeall/", api.ApiSessionRequired(revokeAllUsersSessions)).Methods("POST")
 
 	api.BaseRoutes.UserByUsername.Handle("", api.ApiSessionRequired(getUserByUsername)).Methods("GET")
 	api.BaseRoutes.UserByEmail.Handle("", api.ApiSessionRequired(getUserByEmail)).Methods("GET")
@@ -1210,6 +1211,25 @@ func revokeAllSessionsForUser(c *Context, w http.ResponseWriter, r *http.Request
 	}
 
 	if err := c.App.RevokeAllSessions(c.Params.UserId); err != nil {
+		c.Err = err
+		return
+	}
+
+	ReturnStatusOK(w)
+}
+
+func revokeAllUsersSessions(c *Context, w http.ResponseWriter, r *http.Request) {
+	c.RequireUserId()
+	if c.Err != nil {
+		return
+	}
+
+	if !c.App.SessionHasPermissionToUser(c.Session, c.Params.UserId) {
+		c.SetPermissionError(model.PERMISSION_EDIT_OTHER_USERS)
+		return
+	}
+
+	if err := c.App.RevokeAllUsersSessions(); err != nil {
 		c.Err = err
 		return
 	}
