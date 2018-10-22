@@ -124,6 +124,32 @@ func (a *App) RevokeAllSessions(userId string) *model.AppError {
 	return nil
 }
 
+func (a *App) RevokeAllUsersSessions() *model.AppError {
+
+	if result := <-a.Srv.Store.OAuth().RemoveAllAccessData(); result.Err != nil {
+		return result.Err
+	}
+	if result := <-a.Srv.Store.Session().RemoveAllSessions(); result.Err != nil {
+		return result.Err
+	}
+	a.ClearSessionCacheForAllUsers()
+	// a.RevokeWebrtcToken(session.Id)
+
+	return nil
+}
+
+func (a *App) ClearSessionCacheForAllUsers() {
+	a.sessionCache.Purge()
+
+	if a.Cluster != nil {
+		msg := &model.ClusterMessage{
+			Event:    model.CLUSTER_EVENT_CLEAR_SESSION_CACHE_FOR_ALL_USERS,
+			SendType: model.CLUSTER_SEND_RELIABLE,
+		}
+		a.Cluster.SendClusterMessage(msg)
+	}
+}
+
 func (a *App) ClearSessionCacheForUser(userId string) {
 	a.ClearSessionCacheForUserSkipClusterSend(userId)
 
