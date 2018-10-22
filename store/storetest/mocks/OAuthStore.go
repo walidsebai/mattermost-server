@@ -204,6 +204,10 @@ func (_m *OAuthStore) RemoveAccessData(token string) store.StoreChannel {
 
 	return r0
 }
+func (_m *OAuthStore) RemoveAllAccessData() store.StoreChannel {
+	var r0 store.StoreChannel
+	return r0
+}
 
 // RemoveAuthData provides a mock function with given fields: code
 func (_m *OAuthStore) RemoveAuthData(code string) store.StoreChannel {

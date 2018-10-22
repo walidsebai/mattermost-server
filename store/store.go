@@ -345,6 +345,7 @@ type OAuthStore interface {
 	GetAccessDataByRefreshToken(token string) StoreChannel
 	GetPreviousAccessData(userId, clientId string) StoreChannel
 	RemoveAccessData(token string) StoreChannel
+	RemoveAllAccessData() StoreChannel
 }
 
 type SystemStore interface {
