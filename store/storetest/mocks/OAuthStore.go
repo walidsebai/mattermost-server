@@ -204,8 +204,19 @@ func (_m *OAuthStore) RemoveAccessData(token string) store.StoreChannel {
 
 	return r0
 }
+
 func (_m *OAuthStore) RemoveAllAccessData() store.StoreChannel {
+	ret := _m.Called()
+
 	var r0 store.StoreChannel
+	if rf, ok := ret.Get(0).(func() store.StoreChannel); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(store.StoreChannel)
+		}
+	}
+
 	return r0
 }
 
